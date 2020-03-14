@@ -18,6 +18,7 @@ module.exports = {
     'class-methods-use-this': 'off',
     'no-param-reassign': 'off',
     'cameclass': 'off',
+    'no-trailing-spaces': 'off',
     'no-unsed-vars': ['error', { 'argIgnorePattern': 'next' }]
   },
 };
