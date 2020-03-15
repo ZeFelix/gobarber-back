@@ -37,6 +37,7 @@ class UserController {
       confirmPassword: Yup.string().when('password', (password, field) => {
         return password ? field.required().oneOf([Yup.ref('password')]) : field;
       }),
+      avatar_id: Yup.INTEGER,
     });
 
     await schema.validate(req.body).catch((sch) => {
@@ -44,14 +45,14 @@ class UserController {
     });
 
     const { email, oldPassword } = req.body;
-    const { id } = req.params;
+    const id = parseInt(req.params.id,10);
     const user = await User.findByPk(id);
 
     if (!user) {
       return res.status(400).json({ message: `User not exists! id: ${id}` });
     }
 
-    if (email != user.email) {
+    if (email != undefined && email != user.email) {
       const userExists = await User.findOne({ where: { email } });
 
       if (userExists) {
@@ -63,9 +64,9 @@ class UserController {
       return res.status(400).json({ message: 'Password does not match!' });
     }
     
-    const { name, provider } = await User.update(req.body);
+    const { name, provider, avatar_id: avatarId } = await user.update(req.body);
 
-    return res.json({ id, name, email, provider });
+    return res.json({ id, name, email, provider, avatar_id: avatarId });
   }
 }
 
