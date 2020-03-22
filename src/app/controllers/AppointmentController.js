@@ -1,4 +1,4 @@
-import { startOfHour, parseISO, isBefore, format } from 'date-fns';
+import { startOfHour, parseISO, isBefore, format, subHours} from 'date-fns';
 import pt from 'date-fns/locale/pt';
 import * as Yup from 'yup';
 
@@ -35,7 +35,6 @@ class AppoitmentController {
 
     return res.json({ appointments });
   }
-
 
   async store(req, res) {
     const schema = Yup.object().shape({
@@ -88,6 +87,23 @@ class AppoitmentController {
       user: provider_id,
     });
     
+    return res.json(appointment);
+  }
+
+  async delete(req, res) {
+    const appointment = await Appointment.findByPk(req.params.id);
+
+    if (appointment.user_id !== req.userId) {
+      return res.status(401).json({ message: 'You don´t have permissions to cancel this appointment.' });
+    }
+
+    const dateWithSub = subHours((await appointment).getDataValue, 2);
+
+    if (isBefore(dateWithSub, new Date())) {
+      return res.status(401).json({ message: 'You can cancel appointment 2 hours in advance.' });
+    }
+
+    await appointment.update({ canceled_at: new Date() });
     return res.json(appointment);
   }
 }
