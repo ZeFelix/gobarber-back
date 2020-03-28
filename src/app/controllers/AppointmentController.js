@@ -1,4 +1,4 @@
-import { startOfHour, parseISO, isBefore, format, subHours} from 'date-fns';
+import { startOfHour, parseISO, isBefore, format, subHours } from 'date-fns';
 import pt from 'date-fns/locale/pt';
 import * as Yup from 'yup';
 
@@ -6,6 +6,8 @@ import User from '../models/User';
 import File from '../models/File';
 import Appointment from '../models/Appointment';
 import Notification from '../schemas/Notifications';
+
+import Mail from '../../lib/Mail';
 
 
 class AppoitmentController {
@@ -86,12 +88,20 @@ class AppoitmentController {
       content: `Novo agendamento para ${user.name} para o ${formattedDate}`,
       user: provider_id,
     });
-    
+
     return res.json(appointment);
   }
 
   async delete(req, res) {
-    const appointment = await Appointment.findByPk(req.params.id);
+    const appointment = await Appointment.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'provider',
+          attributes: ['name', 'email'],
+        },
+      ],
+    });
 
     if (appointment.user_id !== req.userId) {
       return res.status(401).json({ message: 'You don´t have permissions to cancel this appointment.' });
@@ -104,6 +114,13 @@ class AppoitmentController {
     }
 
     await appointment.update({ canceled_at: new Date() });
+
+    await Mail.sendMail({
+      to: `${appointment.provider.name} <${appointment.provider.email}>`,
+      subject: 'Agendamento cancelado',
+      text: 'VocÊ tem um novo cancelamento',
+    });
+
     return res.json(appointment);
   }
 }
