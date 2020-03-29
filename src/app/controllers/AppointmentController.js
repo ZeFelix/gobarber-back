@@ -21,7 +21,7 @@ class AppoitmentController {
         canceled_at: null,
       },
       order: ['date'],
-      attributes: ['id', 'date'],
+      attributes: ['id', 'date', 'past', 'cancelable'],
       limit: qtdPerPage,
       offset: (page - 1) * qtdPerPage, // paginação de 20 em 20
       include: {
