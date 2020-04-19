@@ -7,7 +7,7 @@ import Appointment from '../models/Appointment';
 
 class ScheduleController {
   async index(req, res) {
-    const checkUserProvider = await User.findOne({ 
+    const checkUserProvider = await User.findOne({
       where: { id: req.userId, provider: true },
     });
 
@@ -28,6 +28,7 @@ class ScheduleController {
           ],
         },
       },
+      include: [{ model: User, as: 'user', attributes: ['id', 'name'] }],
       order: ['date'],
     });
 

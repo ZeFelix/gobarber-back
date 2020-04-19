@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import authConfig from '../../config/auth';
 
 import User from '../models/User';
+import File from '../models/File';
 
 class SessionController {
   async store(req, res) {
@@ -12,13 +13,20 @@ class SessionController {
       password: Yup.string().required().min(6),
     });
 
-    await schema.validate(req.body).catch((sch) => {
-      return res.status(400).json({ message: sch.message });
-    });
+    await schema.validate(req.body).catch((sch) => res.status(400).json({ message: sch.message }));
 
     const { email, password } = req.body;
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({
+      where: { email },
+      include: [
+        {
+          model: File,
+          as: 'avatar',
+          attributes: ['id', 'path', 'url'],
+        },
+      ],
+    });
 
     if (!user) {
       return res.status(400).json({ message: 'User not found!' });
@@ -27,20 +35,24 @@ class SessionController {
     if (!(await user.checkPassword(password))) {
       return res.status(400).json({ message: 'Password strong!' });
     }
-    
-    const { id, name } = user;
+
+    const {
+      id, name, avatar, provider,
+    } = user;
 
     return res.json({
       user: {
         id,
         name,
         email,
+        avatar,
+        provider,
       },
       token: jwt.sign({ id }, authConfig.secret, {
         expiresIn: authConfig.expiresIn,
       }),
     });
-  } 
+  }
 }
 
 export default new SessionController();

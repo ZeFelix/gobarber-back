@@ -1,6 +1,7 @@
 import * as Yup from 'yup';
 
 import User from '../models/User';
+import File from '../models/File';
 
 class UserController {
   async store(req, res) {
@@ -20,9 +21,13 @@ class UserController {
       return res.status(400).json({ message: 'Email already exists!' });
     }
 
-    const { id, name, email, provider } = await User.create(req.body);
+    const {
+      id, name, email, provider,
+    } = await User.create(req.body);
 
-    return res.json({ id, name, email, provider });
+    return res.json({
+      id, name, email, provider,
+    });
   }
 
   async update(req, res) {
@@ -31,12 +36,8 @@ class UserController {
       email: Yup.string().email(),
       oldPassword: Yup.string().min(6),
       password: Yup.string().min(6)
-        .when('oldPassword', (oldPassword, field) => {
-          return oldPassword ? field.required() : field;
-        }),
-      confirmPassword: Yup.string().when('password', (password, field) => {
-        return password ? field.required().oneOf([Yup.ref('password')]) : field;
-      }),
+        .when('oldPassword', (oldPassword, field) => (oldPassword ? field.required() : field)),
+      confirmPassword: Yup.string().when('password', (password, field) => (password ? field.required().oneOf([Yup.ref('password')]) : field)),
       avatar_id: Yup.INTEGER,
     });
 
@@ -45,14 +46,14 @@ class UserController {
     });
 
     const { email, oldPassword } = req.body;
-    const id = parseInt(req.params.id,10);
+    const id = parseInt(req.params.id, 10);
     const user = await User.findByPk(id);
 
     if (!user) {
       return res.status(400).json({ message: `User not exists! id: ${id}` });
     }
 
-    if (email != undefined && email != user.email) {
+    if (email !== undefined && email !== user.email) {
       const userExists = await User.findOne({ where: { email } });
 
       if (userExists) {
@@ -63,10 +64,22 @@ class UserController {
     if (oldPassword && !(await user.checkPassword(oldPassword))) {
       return res.status(400).json({ message: 'Password does not match!' });
     }
-    
-    const { name, provider, avatar_id: avatarId } = await user.update(req.body);
 
-    return res.json({ id, name, email, provider, avatar_id: avatarId });
+    await user.update(req.body);
+
+    const { name, provider, avatar } = await User.findByPk(id, {
+      include: [
+        {
+          model: File,
+          as: 'avatar',
+          attributes: ['id', 'path', 'url'],
+        },
+      ],
+    });
+
+    return res.json({
+      id, name, email, provider, avatar,
+    });
   }
 }
 
